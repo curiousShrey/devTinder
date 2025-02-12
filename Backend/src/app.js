@@ -1,14 +1,23 @@
 const express = require('express');
+const { adminAuth } = require('./middlewares/auth.js');
 
 const app = express(); //creating a new app using Express (a new project basically)
 
-app.use("/test",(req,res)=>{
+app.get("/admin",adminAuth,(req,res)=>{
 
-    res.send("Hello from the server test route!");
+    res.send("Hello I am the Admin");
+})
+
+app.get("/admin/dashboard", adminAuth, (req,res)=>{
+    res.send("Admin Dashboard data.")
 })
 
 app.get("/users",(req,res)=> {
-    res.send("Got all the response of users.")
+    res.send("All data of users.")
+})
+
+app.get("/users/user1",(req,res)=> {
+    res.send("All data of user 1.")
 })
 
 app.listen(3000, ()=> {
