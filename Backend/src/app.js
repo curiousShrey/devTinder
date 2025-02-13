@@ -2,7 +2,9 @@ const express = require('express');
 const connectDB = require('./config/database');
 const User = require('./models/user');
 
-const app = express(); //creating a new app using Express (a new project basically)
+const app = express(); // creating a new app using Express (a new project basically)
+
+app.use(express.json()); // middleware provided by express to convert incoming request STREAM Object into JSON
 
 //Connect to the DB and then start listening to the server.
 connectDB().then(()=>{
@@ -22,12 +24,7 @@ connectDB().then(()=>{
 
 app.post('/signup', async (req,res)=>{
 
-    const userObj = {
-        "firstName": "Shrey",
-        "lastName" :"Joshi",
-        "age": "26",
-        "emailId": "shrey@example.com"
-    }
+    const userObj = req.body;
 
     const user = new User(userObj);
 
@@ -39,7 +36,6 @@ app.post('/signup', async (req,res)=>{
         console.log(err);
         res.status(400).send("User not added.")
     });
-
 
    
 })
