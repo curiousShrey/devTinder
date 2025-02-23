@@ -2,11 +2,19 @@ const express = require('express');
 const connectDB = require('./config/database');
 const User = require('./models/user');
 const bcrypt = require("bcrypt");
+const cors = require('cors');
+const cookieParser = require("cookie-parser");
 const { validateSignUpData } = require("./utils/validation");
+const { userAuth } = require('./middlewares/auth');
 
 const app = express(); // creating a new app using Express (a new project basically)
 
-app.use(express.json()); // middleware provided by express to convert incoming request STREAM Object into JSON
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }));
+app.use(express.json());
+app.use(cookieParser()); 
 
 //Connect to the DB and then start listening to the server.
 connectDB().then(()=>{
@@ -33,7 +41,7 @@ app.post('/signup', async (req,res)=>{
   
       // Encrypt the password
       const passwordHash = await bcrypt.hash(password, 10);
-      console.log(passwordHash);
+    //  console.log(passwordHash);
   
       //   Creating a new instance of the User model
       const user = new User({
@@ -57,14 +65,43 @@ app.post('/signup', async (req,res)=>{
   });
 
 app.post('/login', async (req,res) =>{
-    const loginData = req.body;
-    console.log(loginData.emailId);
+    try {
+      const { emailId, password } = req.body;
+  
+      const user = await User.findOne({ emailId: emailId });
+      if (!user) {
+        throw new Error("Email ID not registered.");
+      }
+      const isPasswordValid = await user.validatePassword(password);
+  
+      if (isPasswordValid) {
+        const token = await user.getJWT();
+  
+        res.cookie("token", token, {
+          expires: new Date(Date.now() + 8 * 3600000),
+        });
+        res.send(user);
+      } else {
+        throw new Error("Invalid credentials");
+      }
+    } catch (err) {
+      res.status(400).send("ERROR : " + err.message);
+    }
+  });
 
-    await User.find({emailId: loginData.emailId}).then((user)=>{
-        console.log(user);
-        res.send("User logged in succesfully.")
-    }).catch(err => {
-        throw new Error('User not found.')
-    })
+app.post('/logout', async (req,res)=>{
+    res.cookie("token", null, {
+      expires: new Date(Date.now()),
+    });
+    res.send("Logout Successful!!");
+  });
 
-})
+app.get("/profile/view", userAuth, async (req, res) => {
+    try {
+      const user = req.user;
+  
+      res.send(user);
+    } catch (err) {
+      res.status(400).send("ERROR : " + err.message);
+    }
+  });
